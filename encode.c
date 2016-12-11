@@ -1,17 +1,6 @@
 #include <stdio.h>
 
-#define FILE_BUFFER_SIZE 2048
-#define WORD_SIZE 1
-#define CODE_LENGTH_LIMIT 2
-
-void getCharacterFrequencies(FILE *filePointer, long long *frequencies) {
-	static unsigned char fileBuffer[FILE_BUFFER_SIZE];
-	
-	size_t numRead = fread((void*)fileBuffer, 1, FILE_BUFFER_SIZE-1, filePointer);
-	fileBuffer[numRead] = '\0';
-	
-	printf("%s", fileBuffer);
-}
+#include "encode_library.h"
 
 int main(int argc, char** argv) {
 	
@@ -22,14 +11,23 @@ int main(int argc, char** argv) {
 	
 	FILE *filePointer = fopen((const char*) argv[1], "r");
 	
-	long long frequencies[(unsigned long long)1 << (8*WORD_SIZE)];
+	long long frequencies[FREQUENCY_TABLE_SIZE];
+	for (size_t i = 0; i < FREQUENCY_TABLE_SIZE; ++i) {
+		frequencies[i] = 0;
+	}
 	
+	printf("Counting character frequencies...\n");
 	getCharacterFrequencies(filePointer, frequencies);
+	printf("Finished counting.\n");
+	printCharacterFrequencies(frequencies);
 	
 	fclose(filePointer);
 	
+	printf("\nFinished. Enter 'q' to quit.\n");
+	{ char c; fscanf(stdin, "%c", &c); }
 	return 0;
 	
 }
+
 
 
