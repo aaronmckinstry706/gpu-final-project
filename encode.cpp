@@ -1,4 +1,5 @@
-#include <stdio.h>
+#include <cstdio>
+#include <vector>
 
 #include "encode_library.h"
 
@@ -11,15 +12,14 @@ int main(int argc, char** argv) {
 	
 	FILE *filePointer = fopen((const char*) argv[1], "r");
 	
-	long long frequencies[FREQUENCY_TABLE_SIZE];
-	for (size_t i = 0; i < FREQUENCY_TABLE_SIZE; ++i) {
-		frequencies[i] = 0;
-	}
-	
 	printf("Counting character frequencies...\n");
-	getCharacterFrequencies(filePointer, frequencies);
+	std::vector<long long> frequencies = getCharacterFrequencies(filePointer);
 	printf("Finished counting.\n");
 	printCharacterFrequencies(frequencies);
+	
+	printf("Running package-merge...\n");
+	//run package merge
+	printf("Finished package-merge.\n");
 	
 	fclose(filePointer);
 	
@@ -28,6 +28,5 @@ int main(int argc, char** argv) {
 	return 0;
 	
 }
-
 
 
