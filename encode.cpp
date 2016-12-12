@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
 	FILE *filePointer = fopen((const char*) argv[1], "r");
 	
 	printf("Counting character frequencies...\n");
-	std::vector<long long> frequencies = getCharacterFrequencies(filePointer);
+	std::map<word_t, frequency_t> frequencies = getCharacterFrequencies(filePointer);
 	printf("Finished counting.\n");
 	printCharacterFrequencies(frequencies);
 	
