@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = 
+CFLAGS = -std=gnu++11
 OBJS = encode.o encode_library.o
 PROG = encode
 
