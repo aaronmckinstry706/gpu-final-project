@@ -7,6 +7,8 @@
 
 void printCharacterFrequencies(const std::map<word_t, frequency_t>& frequencies);
 void printCodeLengths(const std::map<word_t, size_t>& codeLengths);
+void printCodes(const std::map<word_t, code_t>& codes);
+void printBits(code_t code);
 
 int main(int argc, char** argv) {
 	
@@ -28,6 +30,11 @@ int main(int argc, char** argv) {
 	std::map<word_t, size_t> codeLengths = getCodeLengths(frequencies, 8*sizeof(code_t));
 	printf("Finished calculating code lengths.\n");
 	printCodeLengths(codeLengths);
+
+	printf("Calculating codes...\n");
+	std::map<word_t, code_t> codes = getCodes(codeLengths);
+	printf("Finished calculating codes.\n");
+	printCodes(codes);
 
 	printf("\nFinished. Enter 'q' to quit.\n");
 	{ char c; fscanf(stdin, "%c", &c); }
@@ -52,3 +59,16 @@ void printCodeLengths(const std::map<word_t, size_t>& codeLengths) {
 	}
 }
 
+void printCodes(const std::map<word_t, code_t>& codes) {
+	for (std::map<word_t, code_t>::const_iterator it = codes.begin(); it != codes.end(); it++) {
+		printf("%c: ", it->first);
+		printBits(it->second);
+		printf("\n");
+	}
+}
+
+void printBits(code_t code) {
+	for (int i = 0; i < 8 * sizeof(code_t); ++i) {
+		printf("%d", (code & (1 << i)) != (0 << 8*sizeof(code_t)) ? 1 : 0);
+	}
+}

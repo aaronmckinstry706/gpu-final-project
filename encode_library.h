@@ -19,15 +19,22 @@ struct huffman_node {
 	huffman_node(double width, word_t word, frequency_t freq);
 };
 
+struct huffman_node_pointer_comparator {
+	bool operator()(huffman_node *h1, huffman_node *h2);
+};
+
 #define FILE_BUFFER_SIZE 2048 //number of word_t items stored in file buffer when reading
 
 std::map<word_t, frequency_t> getCharacterFrequencies(FILE *filePointer);
 std::map<word_t, size_t> getCodeLengths(const std::map<word_t, frequency_t>& characterFrequencies, size_t lengthLimit);
+std::map<word_t, code_t> getCodes(const std::map<word_t, size_t>& codeLengths);
+void constructCodesFromTree(huffman_node *huffmanTree,
+		std::map<word_t, code_t>& codes, code_t code = 0 << 8 * sizeof(code_t), size_t depth = 0);
 
-//utility functions for huffman trees
-
+//utility functions for huffman tree nodes
+huffman_node * mergeTrees(huffman_node *h1, huffman_node *h2); // for Huffman tree construction
 void addLeafOccurrenceCounts(huffman_node *h, std::map<word_t, size_t>& counts);
-huffman_node * mergeTrees(huffman_node *h1, huffman_node *h2);
+huffman_node * mergePackages(huffman_node *h1, huffman_node *h2); // for package-merge algorithm
 void deleteTree(huffman_node *h);
 
 //debug functions
