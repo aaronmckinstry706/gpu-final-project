@@ -29,7 +29,7 @@ std::map<word_t, frequency_t> getCharacterFrequencies(FILE *filePointer) {
 	return frequencies;
 }
 
-std::map<word_t, size_t> getCodeLengths(const std::map<word_t, frequency_t>& characterFrequencies, size_t lengthLimit) {
+std::map<word_t, size_t> getCodeLengths(const std::map<word_t, frequency_t> &characterFrequencies, size_t lengthLimit) {
 	std::vector<huffman_node*> forest;
 	for (std::map<word_t, frequency_t>::const_iterator it = characterFrequencies.begin();
 		it != characterFrequencies.end();
@@ -71,7 +71,7 @@ std::map<word_t, size_t> getCodeLengths(const std::map<word_t, frequency_t>& cha
 	return codeLengths;
 }
 
-std::map<word_t, code_t> getCodes(const std::map<word_t, size_t>& codeLengths) {
+std::map<word_t, code_t> getCodes(const std::map<word_t, size_t> &codeLengths) {
 	std::vector<huffman_node*> forest;
 	for (std::map<word_t, size_t>::const_iterator it = codeLengths.begin(); it != codeLengths.end(); it++) {
 		forest.push_back(new huffman_node(-(double)it->second, it->first, 0));//so hufman_node.width = code length for sorting
@@ -92,12 +92,79 @@ std::map<word_t, code_t> getCodes(const std::map<word_t, size_t>& codeLengths) {
 	return codes;
 }
 
-void constructCodesFromTree(huffman_node *root, std::map<word_t, code_t>& codes, code_t code, size_t depth) {
+void constructCodesFromTree(huffman_node *root, std::map<word_t, code_t> &codes, code_t code, size_t depth) {
 	if (root->left == 0 && root->right == 0)
 		codes[root->word] = code;
 	else {
 		constructCodesFromTree(root->left, codes, code, depth + 1);
 		constructCodesFromTree(root->right, codes, code | (1 << depth), depth + 1);
+	}
+}
+
+std::vector<unsigned short> getDecodingTable(const std::map<word_t, code_t> &codes, const std::map<word_t, size_t> &codeLengths) {
+	std::vector<unsigned short> decodingTable(1 << MAX_CODE_LENGTH, 0);
+
+	std::map<word_t, code_t>::const_iterator codeIt = codes.begin();
+	std::map<word_t, size_t>::const_iterator lengthIt = codeLengths.begin();
+	for ( ; codeIt != codes.end(); ++codeIt, ++lengthIt) {
+		size_t increment = 1 << lengthIt->second;
+		for (size_t code = codeIt->second; code < (1 << MAX_CODE_LENGTH); code += increment) {
+			decodingTable[code] = (unsigned short)(lengthIt->second << 8) | (unsigned short)lengthIt->first;
+		}
+	}
+
+	return decodingTable;
+}
+
+void encodeFile(
+	FILE *sourceFile,
+	FILE *destinationFile, 
+	const std::vector<unsigned short> &decodingTable, 
+	const std::map<word_t, code_t> &codes, 
+	const std::map<word_t, size_t> &codeLengths
+) {
+	unsigned char inBuffer[FILE_BUFFER_SIZE];
+	unsigned char outBuffer[FILE_BUFFER_SIZE + 64];
+	size_t outBitOffset = 0;
+	
+	size_t numRead = fread((void*)inBuffer, sizeof(word_t), FILE_BUFFER_SIZE, sourceFile);
+	while (numRead > 0) {
+		for (size_t i = 0; i < std::min((size_t)FILE_BUFFER_SIZE, numRead); ++i) {
+			if (outBitOffset > 8 * FILE_BUFFER_SIZE) {
+				fwrite(outBuffer, sizeof(unsigned char), FILE_BUFFER_SIZE, destinationFile);
+				size_t bytesToShift = (outBitOffset - 8 * FILE_BUFFER_SIZE) / 8 + (outBitOffset % 8 > 0);
+				for (size_t j = 0; j < bytesToShift; ++j)
+					outBuffer[j] = outBuffer[FILE_BUFFER_SIZE + j];
+				outBitOffset -= 8 * FILE_BUFFER_SIZE;
+			}
+
+			std::map<word_t, code_t>::const_iterator codeIter = codes.find(inBuffer[i]);
+			code_t code = codeIter->second;
+
+			std::map<word_t, size_t>::const_iterator lengthIter = codeLengths.find(inBuffer[i]);
+			size_t length = lengthIter->second;
+
+			writeCode(code, length, outBitOffset, outBuffer);
+			outBitOffset += length;
+		}
+		numRead = fread((void*)inBuffer, sizeof(word_t), FILE_BUFFER_SIZE, sourceFile);
+	}
+
+	if (outBitOffset > 0) {
+		fwrite(outBuffer, sizeof(unsigned char), outBitOffset / 8 + (outBitOffset % 8 > 0), destinationFile);
+	}
+}
+
+void writeCode(code_t code, size_t bitLength, size_t bitOffset, unsigned char *stream) {
+	while (bitLength > 0) {
+		size_t byteOffset = bitOffset / 8;
+		size_t withinByteOffset = bitOffset - 8 * byteOffset;
+		stream[byteOffset] &= ((unsigned char)0xFF >> 8 - withinByteOffset);
+		stream[byteOffset] |= (unsigned char)(code << withinByteOffset);
+		size_t numBitsWritten = std::min(bitLength, 8 - withinByteOffset);
+		bitOffset += numBitsWritten;
+		code >>= numBitsWritten;
+		bitLength -= numBitsWritten;
 	}
 }
 
@@ -107,7 +174,7 @@ huffman_node * mergeTrees(huffman_node *h1, huffman_node *h2) {
 	return new huffman_node(h1->width + 1, 0, h1, h2);
 }
 
-void addLeafOccurrenceCounts(huffman_node *h, std::map<word_t, size_t>& counts) {
+void addLeafOccurrenceCounts(huffman_node *h, std::map<word_t, size_t> &counts) {
 	if (h->left == 0 && h->right == 0)
 		counts[h->word]++;
 	else {
