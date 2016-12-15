@@ -23,8 +23,8 @@ struct huffman_node_pointer_comparator {
 	bool operator()(huffman_node *h1, huffman_node *h2);
 };
 
-#define FILE_BUFFER_SIZE 2048 //number of word_t items stored in file buffer when reading
-#define MAX_CODE_LENGTH 3 //max number of bits in a code
+#define FILE_BUFFER_SIZE ((size_t)1 << 15) //number of word_t items stored in file buffer when reading
+#define MAX_CODE_LENGTH (12) //max number of bits in a code
 
 std::map<word_t, frequency_t> getCharacterFrequencies(FILE *filePointer);
 std::map<word_t, size_t> getCodeLengths(const std::map<word_t, frequency_t> &characterFrequencies, size_t lengthLimit);
