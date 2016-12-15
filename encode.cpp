@@ -14,39 +14,61 @@ template <typename T> void printBits(T code);
 
 int main(int argc, char** argv) {
 	
-	if (argc != 3) {
-		printf("Usage: encode <source> <destination>\n");
+	if (argc != 4) {
+		printf("Usage: encode <source> <destination> <subBlockSize>\n");
 		return 0;
 	}
 	
 	FILE *sourceFile = fopen((const char*) argv[1], "r");
 	
-	printf("Counting character frequencies...\n");
+	printf("\nCounting character frequencies...\n");
 	std::map<word_t, frequency_t> frequencies = getCharacterFrequencies(sourceFile);
 	printf("Finished counting.\n");
 	printCharacterFrequencies(frequencies);
 
 	fclose(sourceFile);
 
-	printf("Calculating code lengths...\n");
-	std::map<word_t, size_t> codeLengths = getCodeLengths(frequencies, MAX_CODE_LENGTH);
+	printf("\nCalculating code lengths...\n");
+	std::map<word_t, size_t> codeLengths = getCodeLengths(frequencies, MAX_CODE_LENGTH+1);
 	printf("Finished calculating code lengths.\n");
 	printCodeLengths(codeLengths);
 
-	printf("Calculating codes...\n");
+	printf("\nCalculating codes...\n");
 	std::map<word_t, code_t> codes = getCodes(codeLengths);
 	printf("Finished calculating codes.\n");
 	printCodes(codes);
 
-	printf("Creating decoding table...\n");
+	printf("\nCreating decoding table...\n");
 	std::vector<unsigned short> decodingTable = getDecodingTable(codes, codeLengths);
 	printf("Finished creating decoding table.\n");
 	//printDecodingTable(decodingTable);
 
-	printf("Encoding file %s...\n", argv[1]);
+	//get subblock size from command line
+	size_t subBlockSize;
+	sscanf(argv[3], "%llu", (unsigned long long *) &subBlockSize);
+	if (subBlockSize == 0)
+		subBlockSize = 1;
+	printf("\nSub-block size: %llu\n", (unsigned long long)subBlockSize);
+
+	//get sourceFileSize
 	sourceFile = fopen(argv[1], "r");
+	fseek(sourceFile, 0, SEEK_END);
+	unsigned long long sourceFileSize = ftell(sourceFile);
+	fseek(sourceFile, 0, SEEK_SET);
+	printf("Source file size: %llu\n", (unsigned long long)sourceFileSize);
+
+	//calculate number of bits in encoded data
+	std::map<word_t, size_t>::iterator lengthsIter = codeLengths.begin();
+	std::map<word_t, frequency_t>::iterator frequencyIter = frequencies.begin();
+	unsigned long long encodedDataBitLength = 0;
+	for (; lengthsIter != codeLengths.end(); lengthsIter++, frequencyIter++) {
+		encodedDataBitLength += (unsigned long long)(lengthsIter->second)*(frequencyIter->second);
+	}
+	printf("Encoded data size: %llu\n", (unsigned long long)encodedDataBitLength);
+
+	printf("\nEncoding file %s...\n", argv[1]);
 	FILE *destinationFile = fopen(argv[2], "w");
-	encodeFile(sourceFile, destinationFile, decodingTable, codes, codeLengths);
+	encodeFile(sourceFile, destinationFile, decodingTable, codes, codeLengths, subBlockSize, sourceFileSize, encodedDataBitLength);
 	fclose(destinationFile);
 	fclose(sourceFile);
 	printDestinationBits(argv[2]);
@@ -93,6 +115,30 @@ void printDecodingTable(const std::vector<unsigned short> &decodingTable) {
 
 void printDestinationBits(const char* filename) {
 	FILE *filePointer = fopen(filename, "r");
+
+	size_t codeLengthLimit, subBlockSize, originalFileSize, sizeOfEncodedData;
+	fread((void*)&codeLengthLimit, sizeof(size_t), 1, filePointer);
+	fread((void*)&subBlockSize, sizeof(size_t), 1, filePointer);
+	fread((void*)&originalFileSize, sizeof(size_t), 1, filePointer);
+	fread((void*)&sizeOfEncodedData, sizeof(size_t), 1, filePointer);
+
+	printf("Code Length Limit: %llu\n", (unsigned long long)codeLengthLimit);
+	printf("Sub-Block Size: %llu\n", (unsigned long long)subBlockSize);
+	printf("Original File Size: %llu\n", (unsigned long long)originalFileSize);
+	printf("Size of Encoded Data: %llu\n", (unsigned long long)sizeOfEncodedData);
+
+	size_t numSubBlocks = originalFileSize / subBlockSize + (originalFileSize % subBlockSize > 0);
+	std::vector<size_t> subBlockOffsets(numSubBlocks, 0);
+	fread((void*)&subBlockOffsets[0], sizeof(size_t), subBlockOffsets.size(), filePointer);
+	for (size_t i = 0; i < subBlockOffsets.size(); ++i) {
+		printf("block %llu: %llu\n", (unsigned long long)i, (unsigned long long)subBlockOffsets[i]);
+	}
+
+	size_t decodeTableSize = (unsigned)1 << codeLengthLimit;
+	std::vector<unsigned short> decodeTable(decodeTableSize, 0);
+	fread((void*)&decodeTable[0], sizeof(unsigned short), decodeTable.size(), filePointer);
+	printDecodingTable(decodeTable);
+
 	unsigned char fileBuffer[FILE_BUFFER_SIZE];
 	size_t numRead = fread((void*)fileBuffer, sizeof(word_t), FILE_BUFFER_SIZE, filePointer);
 	while (numRead > 0) {
@@ -102,6 +148,8 @@ void printDestinationBits(const char* filename) {
 		numRead = fread((void*)fileBuffer, sizeof(word_t), FILE_BUFFER_SIZE, filePointer);
 	}
 	printf("\n");
+	
+	fclose(filePointer);
 }
 
 template <typename T> void printBits(T code) {

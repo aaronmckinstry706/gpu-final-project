@@ -121,8 +121,28 @@ void encodeFile(
 	FILE *destinationFile, 
 	const std::vector<unsigned short> &decodingTable, 
 	const std::map<word_t, code_t> &codes, 
-	const std::map<word_t, size_t> &codeLengths
+	const std::map<word_t, size_t> &codeLengths,
+	size_t subBlockSize,
+	unsigned long long sourceFileSize,
+	unsigned long long encodedDataBitLength
 ) {
+	//first output all the metadata
+
+	size_t codeLengthLimit = MAX_CODE_LENGTH;
+	subBlockSize *= 64;
+
+	fwrite((void*)&codeLengthLimit, sizeof(size_t), 1, destinationFile);
+	fwrite((void*)&subBlockSize, sizeof(size_t), 1, destinationFile);
+	fwrite((void*)&sourceFileSize, sizeof(unsigned long long), 1, destinationFile);
+	fwrite((void*)&encodedDataBitLength, sizeof(unsigned long long), 1, destinationFile);
+
+	writeSubBlockOffsets(sourceFile, destinationFile, codeLengths, subBlockSize);
+	fseek(sourceFile, 0, SEEK_SET);
+
+	fwrite((void*)&decodingTable[0], sizeof(unsigned short), decodingTable.size(), destinationFile);
+
+	//then encode the data bytes themselves
+
 	unsigned char inBuffer[FILE_BUFFER_SIZE];
 	unsigned char outBuffer[FILE_BUFFER_SIZE + 64];
 	size_t outBitOffset = 0;
@@ -165,6 +185,21 @@ void writeCode(code_t code, size_t bitLength, size_t bitOffset, unsigned char *s
 		bitOffset += numBitsWritten;
 		code >>= numBitsWritten;
 		bitLength -= numBitsWritten;
+	}
+}
+
+void writeSubBlockOffsets(FILE *sourceFile, FILE *destinationFile, const std::map<word_t, size_t>& codeLengths, size_t subBlockSize) {
+	static word_t fileBuffer[FILE_BUFFER_SIZE];
+
+	unsigned long long offset = 0;
+
+	size_t numRead = fread((void*)fileBuffer, sizeof(word_t), subBlockSize, sourceFile);
+	while (numRead > 0) {
+		fwrite((void*)&offset, sizeof(unsigned long long), 1, destinationFile);
+		for (size_t i = 0; i < numRead; i++) {
+			offset += codeLengths.find(fileBuffer[i])->second;
+		}
+		numRead = fread((void*)fileBuffer, sizeof(word_t), subBlockSize, sourceFile);
 	}
 }
 
