@@ -173,6 +173,13 @@ void encodeFile(
 	if (outBitOffset > 0) {
 		fwrite(outBuffer, sizeof(unsigned char), outBitOffset / 8 + (outBitOffset % 8 > 0), destinationFile);
 	}
+	
+	//now pad with 0's so reading is slightly easier to handle
+	const size_t paddingSize = MAX_CODE_LENGTH / 8 + (MAX_CODE_LENGTH % 8 > 0);
+	unsigned char temp[paddingSize];
+	for (size_t i = 0; i < paddingSize; ++i)
+		temp[i] = 0;
+	fwrite(temp, sizeof(unsigned char), paddingSize, destinationFile);
 }
 
 void writeCode(code_t code, size_t bitLength, size_t bitOffset, unsigned char *stream) {
