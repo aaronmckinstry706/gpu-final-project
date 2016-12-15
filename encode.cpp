@@ -21,26 +21,26 @@ int main(int argc, char** argv) {
 	
 	FILE *sourceFile = fopen((const char*) argv[1], "r");
 	
-	printf("\nCounting character frequencies...\n");
+	//printf("\nCounting character frequencies...\n");
 	std::map<word_t, frequency_t> frequencies = getCharacterFrequencies(sourceFile);
-	printf("Finished counting.\n");
-	printCharacterFrequencies(frequencies);
+	//printf("Finished counting.\n");
+	//printCharacterFrequencies(frequencies);
 
 	fclose(sourceFile);
 
-	printf("\nCalculating code lengths...\n");
+	//printf("\nCalculating code lengths...\n");
 	std::map<word_t, size_t> codeLengths = getCodeLengths(frequencies, MAX_CODE_LENGTH+1);
-	printf("Finished calculating code lengths.\n");
-	printCodeLengths(codeLengths);
+	//printf("Finished calculating code lengths.\n");
+	//printCodeLengths(codeLengths);
 
-	printf("\nCalculating codes...\n");
+	//printf("\nCalculating codes...\n");
 	std::map<word_t, code_t> codes = getCodes(codeLengths);
-	printf("Finished calculating codes.\n");
-	printCodes(codes);
+	//printf("Finished calculating codes.\n");
+	//printCodes(codes);
 
-	printf("\nCreating decoding table...\n");
+	//printf("\nCreating decoding table...\n");
 	std::vector<unsigned short> decodingTable = getDecodingTable(codes, codeLengths);
-	printf("Finished creating decoding table.\n");
+	//printf("Finished creating decoding table.\n");
 	//printDecodingTable(decodingTable);
 
 	//get subblock size from command line
@@ -48,14 +48,14 @@ int main(int argc, char** argv) {
 	sscanf(argv[3], "%llu", (unsigned long long *) &subBlockSize);
 	if (subBlockSize == 0)
 		subBlockSize = 1;
-	printf("\nSub-block size: %llu\n", (unsigned long long)subBlockSize);
+	//printf("\nSub-block size: %llu\n", (unsigned long long)subBlockSize);
 
 	//get sourceFileSize
 	sourceFile = fopen(argv[1], "r");
 	fseek(sourceFile, 0, SEEK_END);
 	unsigned long long sourceFileSize = ftell(sourceFile);
 	fseek(sourceFile, 0, SEEK_SET);
-	printf("Source file size: %llu\n", (unsigned long long)sourceFileSize);
+	//printf("Source file size: %llu\n", (unsigned long long)sourceFileSize);
 
 	//calculate number of bits in encoded data
 	std::map<word_t, size_t>::iterator lengthsIter = codeLengths.begin();
@@ -64,18 +64,18 @@ int main(int argc, char** argv) {
 	for (; lengthsIter != codeLengths.end(); lengthsIter++, frequencyIter++) {
 		encodedDataBitLength += (unsigned long long)(lengthsIter->second)*(frequencyIter->second);
 	}
-	printf("Encoded data size: %llu\n", (unsigned long long)encodedDataBitLength);
+	//printf("Encoded data size: %llu\n", (unsigned long long)encodedDataBitLength);
 
-	printf("\nEncoding file %s...\n", argv[1]);
+	//printf("\nEncoding file %s...\n", argv[1]);
 	FILE *destinationFile = fopen(argv[2], "w");
 	encodeFile(sourceFile, destinationFile, decodingTable, codes, codeLengths, subBlockSize, sourceFileSize, encodedDataBitLength);
 	fclose(destinationFile);
 	fclose(sourceFile);
-	printDestinationBits(argv[2]);
-	printf("Finished encoding file.\n");
+	//printDestinationBits(argv[2]);
+	//printf("Finished encoding file.\n");
 
-	printf("\nFinished. Enter 'q' to quit.\n");
-	{ char c; fscanf(stdin, "%c", &c); }
+	//printf("\nFinished. Enter 'q' to quit.\n");
+	//{ char c; fscanf(stdin, "%c", &c); }
 	return 0;
 	
 }
