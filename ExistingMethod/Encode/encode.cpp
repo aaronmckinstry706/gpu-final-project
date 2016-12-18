@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 	std::vector<unsigned short> decodingTable = getDecodingTable(codes, codeLengths);
 	if (argc == 5) {
 		printf("Finished creating decoding table.\n");
-		printDecodingTable(decodingTable);
+		//printDecodingTable(decodingTable);
 	}
 	
 	//get subblock size from command line
@@ -157,7 +157,7 @@ void printDestinationBits(const char* filename) {
 	size_t decodeTableSize = (unsigned)1 << codeLengthLimit;
 	std::vector<unsigned short> decodeTable(decodeTableSize, 0);
 	fread((void*)&decodeTable[0], sizeof(unsigned short), decodeTable.size(), filePointer);
-	printDecodingTable(decodeTable);
+	//printDecodingTable(decodeTable);
 
 	unsigned char fileBuffer[FILE_BUFFER_SIZE];
 	size_t numRead = fread((void*)fileBuffer, sizeof(word_t), FILE_BUFFER_SIZE, filePointer);

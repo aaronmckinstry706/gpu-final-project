@@ -71,6 +71,27 @@ std::map<word_t, size_t> getCodeLengths(const std::map<word_t, frequency_t> &cha
 	return codeLengths;
 }
 
+void printTree(huffman_node *root) {
+	printf("{ ");
+	if (root->right == 0 && root->left == 0) {
+		char mystr[3];
+		if (root->word == '\n') {
+			mystr[0] = '\\';
+			mystr[1] = 'n';
+			mystr[2] = '\0';
+			printf("%s", mystr);
+		}
+		else {
+			printf("%c", root->word);
+		}
+	}
+	else {
+		printTree(root->left);
+		printTree(root->right);
+	}
+	printf(" }");
+}
+
 std::map<word_t, code_t> getCodes(const std::map<word_t, size_t> &codeLengths) {
 	std::vector<huffman_node*> forest;
 	for (std::map<word_t, size_t>::const_iterator it = codeLengths.begin(); it != codeLengths.end(); it++) {
@@ -83,7 +104,10 @@ std::map<word_t, code_t> getCodes(const std::map<word_t, size_t> &codeLengths) {
 		forest.pop_back();
 		forest.pop_back();
 		forest.push_back(h);
+		std::sort(forest.begin(), forest.end(), huffman_node_pointer_comparator());
 	}
+	
+	printTree(forest[0]);
 
 	//now we have the huffman tree; traverse it to get the codes
 	std::map<word_t, code_t> codes;
